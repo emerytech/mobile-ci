@@ -13,7 +13,13 @@ on self-hosted runners — **zero EAS cloud build billing**. Only cost is your o
 `.github/workflows/eas-local-build.yml` — called by app repos.
 
 Inputs: `platform` (ios|android|all), `profile` (eas.json build profile),
-`submit` (bool), `node-version`, `eas-version`. Secret: `EXPO_TOKEN`.
+`submit` (bool), `node-version`, `eas-version`,
+`working-directory` (subdir holding package.json / eas.json; `.` = repo root).
+Secret: `EXPO_TOKEN`.
+
+**Monorepo / subdir apps:** if the Expo app is not at the repo root (e.g. it lives in
+`app/`), pass `working-directory: app` in the caller's `with:`. Checkout still lands at
+the repo root, so relative paths in `eas.json` (e.g. `../secrets/...`) still resolve.
 
 ## Add to an app repo
 

@@ -27,6 +27,10 @@ on:
         description: eas-cli version to pin
         type: string
         default: '23.2.0'
+      working-directory:
+        description: subdir holding package.json / eas.json (Expo app root); '.' = repo root
+        type: string
+        default: '.'
     secrets:
       EXPO_TOKEN:
         required: true
@@ -38,6 +42,9 @@ jobs:
   ios:
     if: inputs.platform == 'ios' || inputs.platform == 'all'
     runs-on: [self-hosted, macOS]
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,6 +68,9 @@ jobs:
   android:
     if: inputs.platform == 'android' || inputs.platform == 'all'
     runs-on: [self-hosted, linux]
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
