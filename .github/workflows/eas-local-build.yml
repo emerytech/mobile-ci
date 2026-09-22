@@ -1,0 +1,82 @@
+name: EAS Local Build
+
+# Reusable workflow. App repos call this via `uses:` — see README.
+# Runs `eas build --local` on self-hosted runners: zero EAS cloud build billing.
+# App-agnostic: all per-app config lives in each caller repo's eas.json / app.json
+# and its EAS-hosted credentials (pulled at build time via EXPO_TOKEN).
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        description: ios | android | all
+        type: string
+        default: all
+      profile:
+        description: eas.json build profile
+        type: string
+        default: production
+      submit:
+        description: submit to store after build
+        type: boolean
+        default: false
+      node-version:
+        type: string
+        default: '22'
+      eas-version:
+        description: eas-cli version to pin
+        type: string
+        default: '23.2.0'
+    secrets:
+      EXPO_TOKEN:
+        required: true
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  ios:
+    if: inputs.platform == 'ios' || inputs.platform == 'all'
+    runs-on: [self-hosted, macOS]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ inputs.node-version }}'
+      - name: Install eas-cli
+        run: npm i -g eas-cli@${{ inputs.eas-version }}
+      - name: Install deps
+        run: npm ci
+      - name: Build (local)
+        run: eas build -p ios --profile ${{ inputs.profile }} --local --non-interactive --output ${{ runner.temp }}/app.ipa
+      - name: Submit
+        if: ${{ inputs.submit }}
+        run: eas submit -p ios --path ${{ runner.temp }}/app.ipa --profile ${{ inputs.profile }} --non-interactive
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: '${{ runner.temp }}/app.ipa'
+          if-no-files-found: error
+
+  android:
+    if: inputs.platform == 'android' || inputs.platform == 'all'
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '${{ inputs.node-version }}'
+      - name: Install eas-cli
+        run: npm i -g eas-cli@${{ inputs.eas-version }}
+      - name: Install deps
+        run: npm ci
+      - name: Build (local)
+        run: eas build -p android --profile ${{ inputs.profile }} --local --non-interactive --output ${{ runner.temp }}/app.aab
+      - name: Submit
+        if: ${{ inputs.submit }}
+        run: eas submit -p android --path ${{ runner.temp }}/app.aab --profile ${{ inputs.profile }} --non-interactive
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: '${{ runner.temp }}/app.aab'
+          if-no-files-found: error
